@@ -19,13 +19,19 @@ class _DetailCardScreenState extends State<DetailCardScreen> {
   late List<Map<String, dynamic>> rowsGeneralInfo;
   late List<Map<String, dynamic>> rowsMonsterInfo;
   late List<Map<String, dynamic>> rowsLinkInfo;
+  int progressDownload = 0;
+
+  @override
+  void initState(){
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
     String markers = "";
     card = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     for(final maker in card['linkmarkers']){
-      markers += "${maker} ";
+      markers += "$maker ";
     }
     print(markers);
     rowsGeneralInfo = [
@@ -70,43 +76,11 @@ class _DetailCardScreenState extends State<DetailCardScreen> {
                   padding: EdgeInsets.only(right: 50, left: 50, top: 20, bottom: 20),
                   child: GestureDetector(
                     onTap: (){
-                      Navigator.of(context).push(
-                        PageRouteBuilder(
-                          barrierColor: SettingsColor.backColor,
-                          barrierDismissible: true,
-                          pageBuilder: (BuildContext context, _, __){
-                            return Scaffold(
-                              appBar: AppBar(
-                                actions: [
-                                  IconButton(
-                                    onPressed: () async {
-                                      await downloadCard(card['imageUrl']);
-                                      final status = SnackBar(
-                                        content: Text(_message),
-                                        action: SnackBarAction(
-                                          textColor: SettingsColor.cardColor,
-                                          label: 'Hecho',
-                                          onPressed: (){}
-                                        ),
-                                      );
-                                      ScaffoldMessenger.of(context).showSnackBar(status);
-                                    },
-                                    icon: Icon(Icons.download, color: SettingsColor.textColor)
-                                  )
-                                ],
-                                backgroundColor: SettingsColor.backColor,
-                              ),
-                              body: Column(
-                                children: [
-                                  Container(
-                                    child: hero()
-                                  )
-                                ]
-                              ),
-                              backgroundColor: SettingsColor.backColor
-                            );
-                          }
-                        )
+                      Navigator.pushNamed(context, "/download_card_image",
+                        arguments: {
+                          'imageUrl': card['imageUrl'],
+                          'name': card['name']
+                        }
                       );
                     },
                     child: hero()
