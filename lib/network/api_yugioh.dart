@@ -9,10 +9,8 @@ class ApiYugioh{
     var response = await http.get(UrlCards);
     if(response.statusCode == 200){
       return generateData(response);
-    }
-    else{
-      var response = await http.get(Uri.parse("https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=&num=30&offset=0"));
-      return (generateData(response));
+    } else {
+      return null;
     }
   }
 

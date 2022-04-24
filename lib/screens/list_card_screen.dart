@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:yugioh_cards/models/card_model.dart';
 import 'package:yugioh_cards/settings/settings_color.dart';
@@ -13,6 +17,9 @@ class Cards extends StatefulWidget {
 }
 
 class _CardsState extends State<Cards> {
+  ConnectivityResult _connectionStatus = ConnectivityResult.none;
+  final Connectivity _connectivity = Connectivity();
+  late StreamSubscription<ConnectivityResult> _connectivitySubscription;
   ApiYugioh? apiYugioh;
   int page = 0;
   String s = "";
@@ -22,6 +29,15 @@ class _CardsState extends State<Cards> {
   void initState(){
     super.initState();
     apiYugioh = ApiYugioh();
+    initConnectivity();
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription.cancel();
+    super.dispose();
   }
 
   @override
@@ -35,17 +51,48 @@ class _CardsState extends State<Cards> {
       body: FutureBuilder(
         future: apiYugioh!.getCards(url!),
         builder: (BuildContext context, AsyncSnapshot<List<CardModel>?> snapshot){
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text('Ocurrio un error en la solicitud'),
+          if(_connectionStatus.toString() == "ConnectivityResult.none"){
+            return Center(
+              child: Text('No Internet Connection', style: TextStyle(color: SettingsColor.textColor)),
             );
           } else {
-            if (snapshot.connectionState == ConnectionState.done) {
-              return _listCards(snapshot.data);
-            } else {
-              return const Center(
-                child: CircularProgressIndicator(),
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('An error has occurred, there is no internet connection or there is a problem with the server', style: TextStyle(color: SettingsColor.textColor)),
               );
+            } else {
+              if(snapshot.data == null){
+                return Center(
+                    child: Column(
+                      children: [
+                        Text("No results found", style: TextStyle(color: SettingsColor.textColor)),
+                        SizedBox(height: 10),
+                        TextButton(
+                            style: TextButton.styleFrom(
+                                backgroundColor: SettingsColor.cardColor
+                            ),
+                            onPressed: (){
+                              setState(() {
+                                url = "https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=&num=30&offset=0";
+                                search.clear();
+                                page = 0;
+                                s = "";
+                              });
+                            },
+                            child: Text("Go back.", style: TextStyle(color: SettingsColor.textColor))
+                        )
+                      ],
+                    )
+                );
+              } else {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return _listCards(snapshot.data);
+                } else {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+              }
             }
           }
         }
@@ -163,5 +210,25 @@ class _CardsState extends State<Cards> {
         },
         child: Text(typeArrow!, style: TextStyle(color: SettingsColor.textColor))
     );
+  }
+
+  Future<void> initConnectivity() async {
+    late ConnectivityResult result;
+    try {
+      result = await _connectivity.checkConnectivity();
+    } on PlatformException catch (e) {
+      return;
+    }
+    if (!mounted) {
+      return Future.value(null);
+    }
+
+    return _updateConnectionStatus(result);
+  }
+
+  Future<void> _updateConnectionStatus(ConnectivityResult result) async {
+    setState(() {
+      _connectionStatus = result;
+    });
   }
 }
